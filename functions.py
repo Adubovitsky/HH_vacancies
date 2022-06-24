@@ -1,6 +1,7 @@
 
 import json
 import requests
+import time
 
 class vacancies_class:
     """
@@ -8,16 +9,18 @@ class vacancies_class:
 
     """
 
-    def __init__(self, url, text, area):
+    def __init__(self, url, text, area, experience):
         self.url = url
         self.text = text
         self.area = area
         self.salary = True
         self.mean_salary = None
         self.count = None
+        self.experience = experience
         self.result = {}
         self.skills_and_freq = {}
         self.requirements = []
+
 
 
     def get_vacancies(self):
@@ -33,7 +36,9 @@ class vacancies_class:
                 'page': 1,
                 'text': self.text,
                 "area": self.area,
-                'only_with_salary': self.salary
+                'only_with_salary': self.salary,
+                'per_page':100,
+                'experience': self.experience
             }
         result = requests.get(self.url, params=my_params1).json()
         self.count = result["found"]
@@ -46,16 +51,30 @@ class vacancies_class:
         :return:
         """
         full_list = []
-        for i in range(self.count // 20 + 1):
+        page_count = self.count//100
+        if page_count>=20:
+            page_count_adj=20
+        else:
+            page_count_adj = page_count
+
+        for i in range(page_count_adj):
             my_params = {
                 'page': i,
                 'text': self.text,
                 "area": self.area,
-                'only_with_salary': self.salary
+                'only_with_salary': self.salary,
+                'per_page':100,
+                'experience': self.experience
             }
             result = requests.get(self.url, params=my_params).json()
-            items_on_page = result["items"]
-            full_list+=items_on_page
+            if result["items"]:
+                items_on_page = result["items"]
+                full_list+=items_on_page
+
+            else:
+                full_list=full_list
+            # time.sleep(1)
+
         return full_list
 
     def get_list_url(self,full_vacancies_list):
@@ -78,8 +97,14 @@ class vacancies_class:
         """
         vacancies_from_api_url = []
         for i in list:
-            result = requests.get(i).json()
-            vacancies_from_api_url.append(result)
+            try:
+                result = requests.get(i).json()
+                vacancies_from_api_url.append(result)
+                #print(i)
+            except requests.exceptions.ConnectTimeout:
+                print("timeout", i)
+                continue
+
         return vacancies_from_api_url
 
     def get_list_of_key_skills_lists(self, vacancies_from_api):
@@ -91,8 +116,10 @@ class vacancies_class:
         """
         new_list = []
         for i in vacancies_from_api:
+
             key_skills = i["key_skills"]
             new_list.append(key_skills)
+
         return new_list
 
     def get_list_of_skills(self, list):
@@ -144,6 +171,12 @@ class vacancies_class:
         self.result["requirements"] = self.requirements
         return json.dumps(self.result,ensure_ascii=False,indent=4)
 
+    def make_result(self):
+        self.result["keywords"] = self.text
+        self.result["count"] = self.count
+        self.result ["average salary, RUR"] = self.mean_salary
+        self.result["requirements"] = self.requirements
+        return self.result
 
     def calculate_average_salary(self,vacancies_list):
         """
@@ -159,8 +192,10 @@ class vacancies_class:
             currency = i["salary"]["currency"]
             gross = i["salary"]["gross"]
             mean_salary = None
-            Euro_exchange_rate = 66
-            Dollar_exchage_rate = 63
+            Euro_exchange_rate = 60
+            Dollar_exchage_rate = 55
+            Tenge_exchage_rate = 0.12
+
             if currency in ["RUR",None]:
                 if min_salary:
                     if max_salary:
@@ -185,7 +220,18 @@ class vacancies_class:
                         mean_salary = min_salary*Dollar_exchage_rate
                 else:
                     mean_salary = max_salary*Dollar_exchage_rate
+            elif currency == "KZT":
+                if min_salary:
+                    if max_salary:
+                        mean_salary = (min_salary+max_salary)/2*Tenge_exchage_rate
+                    else:
+                        mean_salary = min_salary*Tenge_exchage_rate
+                else:
+                    mean_salary = max_salary*Tenge_exchage_rate
+
+
             gross_mean_salary = mean_salary if gross else mean_salary/0.87
+            #print(gross_mean_salary, min_salary, max_salary, currency, gross)
             cumulative_mean_salary += gross_mean_salary
             self.mean_salary = round(cumulative_mean_salary/quantity_of_vacancies,2)
         return self.mean_salary

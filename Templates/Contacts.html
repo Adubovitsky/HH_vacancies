@@ -13,13 +13,16 @@
 <body>
     <ul class="nav nav-pills nav-fill">
   <li class="nav-item">
-    <a class="nav-link"  href="Index.html">Главная</a>
+    <a class="nav-link"  href="/">Главная</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" href="form.html">Форма поиска</a>
+    <a class="nav-link" href="/form/">Форма поиска</a>
   </li>
   <li class="nav-item">
-     <a class="nav-link active" aria-current="page" href="#">Контакты</a>
+    <a class="nav-link" href="/output/">Результат поиска</a>
+  </li>
+  <li class="nav-item">
+     <a class="nav-link active" aria-current="page" href="/contacts/">Контакты</a>
   </ul>
 <hr align="center" width="1500" size="5" color="blue" />
 <section class="mb-4">
@@ -87,33 +90,30 @@
 
             </form>
 
-<!--            <div class="text-center text-md-left">-->
-<!--                <a class="btn btn-primary" onclick="document.getElementById('contact-form').submit();">Send</a>-->
-<!--            </div>-->
+
             <div class="status"></div>
         </div>
-        <!--Grid column-->
 
-        <!--Grid column-->
         <div class="col-md-3 text-center">
             <ul class="list-unstyled mb-0">
                 <li><i class="fas fa-map-marker-alt fa-2x"></i>
-                    <p>Москва, ул. Шаболовская 37</p>
+                    <p>{{address}}</p>
                 </li>
 
                 <li><i class="fas fa-phone mt-4 fa-2x"></i>
-                    <p>+7 (999) 999-99-99</p>
+                    <p>{{phone}}</p>
                 </li>
 
                 <li><i class="fas fa-envelope mt-4 fa-2x"></i>
-                    <p>info@smartsearch.ru</p>
+                    <p>{{email}}</p>
                 </li>
             </ul>
         </div>
-        <!--Grid column-->
+
 
     </div>
 
 </section>
 </body>
 </html>
+

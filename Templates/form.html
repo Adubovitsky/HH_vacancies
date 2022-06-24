@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Поиск</title>
-    <link href="main.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css"
           rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor"
           crossorigin="anonymous">
@@ -16,13 +16,16 @@
     <div>
         <ul class="nav nav-pills nav-fill">
           <li class="nav-item">
-            <a class="nav-link"  href="Index.html">Главная</a>
+            <a class="nav-link"  href="/">Главная</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="#">Форма поиска</a>
+            <a class="nav-link active" href="/form/">Форма поиска</a>
           </li>
+            <li class="nav-item">
+            <a class="nav-link" href="/output/">Результат поиска</a>
+            </li>
           <li class="nav-item">
-            <a class="nav-link" aria-current="page" href="Contacts.html">Контакты</a>
+            <a class="nav-link" aria-current="page" href="/contacts">Контакты</a>
           </ul>
      </div>
      <hr align="center" width="1500" size="5" color="blue" />
@@ -34,27 +37,31 @@
     <div>
         <div class="block1">
             <div class="block5">
-                <form>
-                    <input type="text" name="job" value="" placeholder="Строка поиска" size="50">
+                <form action="http://127.0.0.1:5000/output" method="post" class="form">
+                    <input type="text" name="job" value="" placeholder="Введите название вакансии" size="50" >
                     <input type="submit" value="Искать" >
-                    <input type="text" name="area_request" value="" placeholder="Регион поиска" size="50">
-
                     <br>
-                    <br/>
-                    <p>
-                    <select name="where">
-                        <option value="all">Везде</option>
-                        <option value="vacancy_name">В названии вакансии </option>
-                        <option value="vacancy_description">В описании вакансии </option>
-                        <option selected value="name">В названии компании</option>
+                    <select name="experience" class="input">
+                        <option value="noExperience">Без опыта работы</option>
+                        <option value="between1And3">Опыт работы от 1 до 3 лет</option>
+                        <option selected value="between3And6">Опыт работы от 3 до 6 лет</option>
+                        <option value="moreThan6">Опыт работы более 6 лет</option>
+                    </select>
+                    <select name="area" width="100">
+                        {% for key, value in area_dict.items() %}
+                        <option value={{value}}>{{key}}</option>
+                        {% endfor %}
+
+                        <option selected value={{area_dict["Москва"]}}>Москва</option>
                     </select>
                     </p>
                 </form>
             </div>
         </div>
         <div class="block2">
-         <img  src = "mg2.jfif" width="550px">
+         <img  src = "/static/img/mg2.jfif" width="550px">
         </div>
     </div>
+
 </body>
 </html>
