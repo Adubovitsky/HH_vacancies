@@ -1,5 +1,6 @@
 import sqlite3
 import requests
+import json
 
 
 url = "https://api.hh.ru/areas"
@@ -29,10 +30,13 @@ for i in result:
                     areas_list.append(record2)
 print(areas_list)
 
-conn = sqlite3.connect('hh.sdb')
-cursor = conn.cursor()
-
-
-for i in areas_list:
-    cursor.execute("insert INTO areas (name, hh_id, parent_id) VALUES (?,?,?)", (i['name'], i['id'], i['parent_id']))
-conn.commit()
+with open("areas.json", "w", encoding='utf8') as f:
+    json.dump(areas_list,f, ensure_ascii=False, indent=4)
+#
+# conn = sqlite3.connect('hh.sdb')
+# cursor = conn.cursor()
+#
+#
+# for i in areas_list:
+#     cursor.execute("insert INTO areas (name, hh_id, parent_id) VALUES (?,?,?)", (i['name'], i['id'], i['parent_id']))
+# conn.commit()

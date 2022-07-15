@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request
-import sqlite3
+from sqlalchemy import create_engine
 from functions import vacancies_class
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
+from alchemy import Vacancies, Areas, Employers
+from datetime import date, datetime, timedelta
 
 app = Flask(__name__)
 
@@ -32,52 +36,63 @@ def output_get():
 def output_post():
     job = request.form['job']
     area = int(request.form['area'])
+    dateform = request.form['date']
+
+    if dateform == "today":
+        date_from = date.today()
+    elif dateform == "last_7days":
+        date_from = date.today()-timedelta(days=7)
+    elif dateform == "last_14days":
+        date_from = date.today()-timedelta(days=14)
+    else:
+        date_from = date.today() - timedelta(days=29)
 
     url = 'https://api.hh.ru/vacancies'
-    vacancies = vacancies_class(url, job, area)
+    vacancies = vacancies_class(url, job, area, date_from)
     vacancies.get_vacancies()
     full_list = vacancies.get_vacancies_all_pages()
     list_url = vacancies.get_list_url(full_list)
     vacancies_data_from_api = vacancies.request_api_url(list_url)
     key_data = vacancies.key_data_api(vacancies_data_from_api)
-    salary = vacancies.get_salary(vacancies_data_from_api)
     count= vacancies.count
 
-    conn = sqlite3.connect('hh.sdb')
-    cursor = conn.cursor()
+    engine = create_engine('sqlite:///hhalchem1.sdb', echo=True)
 
-    cursor.execute('DELETE from address')
-    cursor.execute('DELETE from Employers')
-    cursor.execute('DELETE from salary ')
-    cursor.execute('DELETE from Vacancies ')
-    conn.commit()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    session.query(Vacancies).delete()
+    session.query(Employers).delete()
+    session.commit()
 
     for i in key_data:
-        cursor.execute(
-            "insert INTO Vacancies (hh_id, area_id, employer_id, experience, published_at, link, name, street, metro) VALUES (?,?,?,?,?,?,?,?,?)",
-            (i['id'], i['area_id'], i['employer_id'], i['experience'], i['published_at'], i['link'], i['name'], i['street'], i['metro']))
+        vac = Vacancies(i['id'], i['area_id'], i['employer_id'], i['experience'], i['published_at'], i['link'],
+                        i['name'], i['metro'], i['street'], i['mean_salary'])
+        session.add(vac)
+        try:
+            emp = Employers(i['employer_name'], i['employer_id'], i['employer_link'])
+            session.add(emp)
+            session.commit()
+        except IntegrityError:
+            session.rollback()
 
-        cursor.execute(
-            "insert INTO Employers (emp_hhid, name, link_employer) VALUES (?,?,?)",
-            (i['employer_id'], i['employer_name'], i['employer_link']))
+    session.commit()
 
-    for i in salary:
-        cursor.execute(
-            "insert INTO salary (hh_id, salary_from, salary_to, currency, gross, salary) VALUES (?,?,?,?,?,?)",
-            (i['id'], i['min_salary'], i['max_salary'], i['currency'], i['gross'], i['mean_salary']))
+    vac_list=[]
+    query = session.query(Vacancies, Employers, Areas).select_from(Vacancies).join(Employers).join(Areas).order_by(Vacancies.salary.desc()).all()
+    for v, e, ar in query:
+        dict={}
+        dict['name']=v.name
+        dict['emp'] = e.name
+        dict['sal'] = v.salary
+        dict['city'] = ar.name
+        dict['str'] = v.street
+        dict['met'] = v.metro
+        dict['date'] = v.published_at
+        dict['link'] = v.link
+        vac_list.append(dict)
 
-    conn.commit()
-
-    query2 = 'select  v.name, e.name,  s.salary, a.name, v.street, v.metro, v.link from Vacancies v, salary s, Employers e, areas a' \
-             '  where v.hh_id=s.hh_id and v.employer_id = e.emp_hhid and v.area_id = a.hh_id'
-
-
-    cursor.execute(query2)
-    result = cursor.fetchall()
-
-
-    return render_template("output.html", job=job, area=area, result=result, area_dict=area_dict, count=count)
-
+    return render_template("output.html", job=job, area=area, vac_list=vac_list, area_dict=area_dict, count=count)
 
 if __name__ == "__main__":
     app.run(debug=True)

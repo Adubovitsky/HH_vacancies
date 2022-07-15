@@ -48,15 +48,15 @@
         <h5>Перечень вакансий</h5>
         <span class="boldbrown">
         В перечене вакансий слева направо указано: наименование вакансии, наименование работодателя, заработная плата, город, улица, метро,
-        ссылка на вакансию на сайте hh
+        дата публикации, ссылка на вакансию на сайте hh
         </span>
         <br>
         <p></p>
         <ul>
-            {% for item in result %}
+            {% for item in vac_list %}
                 <li>
-                     {{item[0:6]}}
-                     <a href="{{item[6]}}">{{item[6]}} </a>
+                     {{item['name'], item['emp'], item['sal'], item['city'], item['str'], item['met'], item['date']}}
+                     <a href="{{item['link']}}">{{item['link']}} </a>
                 </li>
 
             {% endfor %}

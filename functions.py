@@ -1,6 +1,7 @@
 
 import json
 import requests
+from datetime import date, timedelta
 
 
 class vacancies_class:
@@ -9,10 +10,11 @@ class vacancies_class:
 
     """
 
-    def __init__(self, url, text, area):
+    def __init__(self, url, text, area, date):
         self.url = url
         self.text = text
         self.area = area
+        self.date = date
         self.salary = True
         self.mean_salary = None
         self.count = None
@@ -36,9 +38,9 @@ class vacancies_class:
                 'text': self.text,
                 "area": self.area,
                 'only_with_salary': self.salary,
-                'per_page':100
-
-            }
+                'per_page':100,
+                'date_from': self.date
+                        }
         result = requests.get(self.url, params=my_params1).json()
         self.count = result["found"]
         return result
@@ -62,7 +64,8 @@ class vacancies_class:
                 'text': self.text,
                 "area": self.area,
                 'only_with_salary': self.salary,
-                'per_page':100
+                'per_page':100,
+                'date_from': '2022-07-13'
 
             }
             result = requests.get(self.url, params=my_params).json()
@@ -107,6 +110,11 @@ class vacancies_class:
         return vacancies_from_api_url
 
     def key_data_api(self, vacancies_from_api):
+        """
+        Функция формирует словарь данных, которые впоследствии будут загружаться в базу данных
+        :param vacancies_from_api:
+        :return:
+        """
         new_list=[]
         no_data = "не указано"
         for i in vacancies_from_api:
@@ -119,61 +127,37 @@ class vacancies_class:
             record["employer_name"] = i["employer"]["name"] if "name" in i['employer'] else no_data
             record["employer_link"] = i["employer"]["alternate_url"] if "alternate_url" in i['employer'] else no_data
             record["area_id"] = i["area"]["id"]
-            record["published_at"] = i["published_at"]  if "published_at" in i else no_data
+            date = str(i["published_at"])  if "published_at" in i else no_data
+            record["published_at"]=date[:10]
             record["link"] = i["alternate_url"] if "alternate_url" in i else no_data
             record["experience"] = i["experience"]["name"] if "experience" in i else no_data
             if i["address"] != None:
                 record["street"] = i["address"]["street"] if i["address"]["street"] else no_data
                 if i["address"]["metro"] != None:
-                    record["metro"] = i["address"]["metro"]['station_name'] if i["address"]["metro"][
-                        'station_name'] else no_data
+                    record["metro"] = i["address"]["metro"]['station_name'] if i["address"]["metro"]['station_name'] else no_data
                 else:
                     record["metro"] = no_data
             else:
                 record["street"] = 'не указано'
                 record["metro"] = 'не указано'
 
+            record["currency"] = i["salary"]["currency"] if i["salary"]["currency"] else no_data
+            record["gross"] = i["salary"]["gross"] if i["salary"]["gross"] else no_data
 
-            #
-            # if i != None:
-            #     record["id"] = i["id"] if "id" in i else no_data
-            #     print(record['id'])
-            #     record["name"] = i["name"] if "name" in i else no_data
-            #     if "employer" in i:
-            #         record["employer_id"] = i["employer"]["id"]
-            #         record["employer_name"] = i["employer"]["name"] if i["employer"]["name"] else no_data
-            #         if "alternate_url" not in i["employer"]:
-            #             record["employer_link"]=no_data
-            #         else:
-            #             record["employer_link"] = i["employer"]["alternate_url"] if i["employer"]["alternate_url"] else no_data
-            #     else:
-            #         record["employer_id"]=no_data
-            #
-            #     record["area_id"] = i["area"]["id"] if "area" in i else no_data
-            #     # record["description"] = i["description"]
-            #     # record["experience"] = i["experience"]["name"]
-            #     record["published_at"] = i["published_at"]  if 'published_at' in i else no_data
-            #     record["link"] = i["alternate_url"]  if "link" in i else no_data
-            #     if "address" in i:
-            #         if i["address"] != None:
-            #             record["street"] = i["address"]["street"] if i["address"]["street"] else no_data
-            #             if i["address"]["metro"] != None:
-            #                 record["metro"] = i["address"]["metro"]['station_name'] if i["address"]["metro"]['station_name'] else no_data
-            #             else:
-            #                 record["metro"]=no_data
-            #         else:
-            #             record["street"]='не указано'
-            #             record["metro"] = 'не указано'
-            #     else:
-            #         record["street"] = 'странный случай'
-            #         record["metro"] = 'странный случай'
-            # else:
-            #     pass
-
-            # print(record['street'])
+            if i["salary"]["from"]:
+                record["min_salary"] = i["salary"]["from"]
+                if i["salary"]["to"]:
+                    record["max_salary"] = i["salary"]["to"]
+                    record["mean_salary"] = (i["salary"]["from"] + i["salary"]["to"]) / 2
+                else:
+                    record["max_salary"] = no_data
+                    record["mean_salary"] = i["salary"]["from"]
+            else:
+                record["min_salary"] = no_data
+                record["max_salary"] = i["salary"]["to"] if i["salary"]["to"] else no_data
+                record["mean_salary"] = i["salary"]["to"] if i["salary"]["to"] else no_data
 
             new_list.append(record)
-
         return new_list
 
     def get_salary(self, vacancies_from_api):
